@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trino-schema
+data:
+  trino-schema.json: |-
+    {
+        "tableName": "FX",
+        "schemaName": "tpch",
+        "topicName": "tpch.FX",
+        "key": {
+            "dataFormat": "json",
+            "fields": [
+                {
+                    "name": "currency",
+                    "type": "VARCHAR",
+                    "hidden": "false"
+                },
+                {
+                    "name": "base_currency",
+                    "type": "VARCHAR",
+                    "hidden": "false"
+                }
+            ]
+        },
+        "message": {
+            "dataFormat" :"json",
+            "fields" : [
+                {
+                    "name": "currency",
+                    "mapping": "currency",
+                    "type": "VARCHAR"
+                },
+                {
+                    "name": "base_currency",
+                    "mapping": "base_currency",
+                    "type": "VARCHAR"
+                },
+                {
+                    "name": "ask",
+                    "mapping": "ask",
+                    "type": "DOUBLE"
+                },
+                {
+                    "name": "bid",
+                    "mapping": "bid",
+                    "type": "DOUBLE"
+                },
+                {
+                    "name": "date",
+                    "mapping": "date",
+                    "type": "TIMESTAMP",
+                    "dataFormat" :"custom-date-time",
+                    "formatHint" : "E M d HH:mm:ss z yyyy"
+                },
+                {
+                    "name": "   high_ask",
+                    "mapping": "high_ask",
+                    "type": "DOUBLE"
+                },
+                {
+                    "name": "high_bid",
+                    "mapping": "high_bid",
+                    "type": "DOUBLE"
+                },
+                {
+                    "name": "low_ask",
+                    "mapping": "low_ask",
+                    "type": "DOUBLE"
+                },
+                {
+                    "name": "low_bid",
+                    "mapping": "low_bid",
+                    "type": "DOUBLE"
+                },
+                {
+                    "name": "midpoint",
+                    "mapping": "midpoint",
+                    "type": "DOUBLE"
+                }
+            ]
+        }
+    }
