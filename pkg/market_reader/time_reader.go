@@ -59,31 +59,35 @@ func (r *TimerReader) GetFxPricing(currencies []string, baseCurrency string, upd
 	} else if r.marketProvider == nil {
 		fmt.Println("ERROR: TimeReader::GetFxPricing(): MarketProvider not initialised.")
 	} else {
+		r.getPricingFromMarketProvider(currencies, baseCurrency) // Run it immediately before waiting for timer.
 		ticker := time.NewTicker(time.Duration(r.timeDelay) * time.Second)
 		for _ = range ticker.C {
 			// Timer has fired. Iterate through each currency and get the FX pricing.
-			for _, currency := range currencies {
-				resp := r.marketProvider.GetFxPricing(currency, baseCurrency, r.lastGetTimestamp)
-
-				// Iterate over the list of returned market prices and send each to the channel for processing in the main thread..
-				for _, v := range resp {
-					priceData := v.Fx_key + "," + v.Provider_resp // Comma-separated header
-
-					select {
-					case r.commsChannel <- priceData: // Send the pricing info to the main loop via the pricing channel.
-						continue
-					case <-r.quitChannel: // Check if a quit signal has been received. If so, tell the main loop that all thread-termination steps are done..
-						fmt.Printf("Received QUIT signal.\n")
-						r.commsChannel <- "done"
-						return
-					}
-				}
-
-				// TODO: Update the lastGetTimestamp with now and persist it.
-			}
+			r.getPricingFromMarketProvider(currencies, baseCurrency)
 		}
 		fmt.Printf("ERROR: quoteGetter() exiting the thread incorrectly")
 	}
+}
 
-	return
+// getPricingFromMarketProvider calls the specific IMarketDataProvbider and processes the responses.
+func (r *TimerReader) getPricingFromMarketProvider(currencies []string, baseCurrency string) {
+	for _, currency := range currencies {
+		resp := r.marketProvider.GetFxPricing(currency, baseCurrency, r.lastGetTimestamp)
+
+		// Iterate over the list of returned market prices and send each to the channel for processing in the main thread..
+		for _, v := range resp {
+			priceData := v.Fx_key + "," + v.Provider_resp // Comma-separated header
+
+			select {
+			case r.commsChannel <- priceData: // Send the pricing info to the main loop via the pricing channel.
+				continue
+			case <-r.quitChannel: // Check if a quit signal has been received. If so, tell the main loop that all thread-termination steps are done..
+				fmt.Printf("Received QUIT signal.\n")
+				r.commsChannel <- "done"
+				return
+			}
+		}
+
+		// TODO: Update the lastGetTimestamp with now and persist it.
+	}
 }
