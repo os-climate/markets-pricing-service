@@ -16,7 +16,6 @@ package market_data_source
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -84,6 +83,8 @@ func (r *ECBMarketDataProvider) GetFxPricing(currency string, baseCurrency strin
 		if numRates == -1 {
 			log.Fatal("FATAL: There was an error determining the number of rates in the result set. Check the message format has not changed.")
 		}
+
+		// fmt.Println(ecbJsonResp)
 
 		// Build a response message for each result.
 		for i := 0; i < numRates; i++ {
@@ -162,8 +163,6 @@ func parseResponse(ecbJsonResp string, index int) (string, string) {
 		"end-date-query1":   ".structure.dimensions.observation[0].values",
 		"end-date-query2":   ".end"}
 
-	// fmt.Println(ecbJsonResp)
-
 	// Run all thew JQueries to extract the data
 	var input map[string]interface{}
 	json.Unmarshal([]byte(ecbJsonResp), &input)
@@ -191,6 +190,11 @@ func parseResponse(ecbJsonResp string, index int) (string, string) {
 	// Extract the FX Rate for the supplied index number
 	queryString := queries["fx-rate-query1"] + "\"" + strconv.Itoa(index) + "\"" + queries["fx-rate-query2"]
 	jsonVal = queryPath(&input, queryString)
+	if jsonVal == nil {
+		log.Println("WARNING: No result for FX at index:", index)
+		jsonVal = 0.0
+	}
+	// ECB may return nil for missing values. Replace nil with 0
 	resp.ObsValue = jsonVal.(float64)
 
 	// Extract the FX Rate for the supplied index number
@@ -244,8 +248,7 @@ func queryPath(input *map[string]interface{}, queryString string) interface{} {
 		if err, more := value.(error); more {
 			log.Fatalln(err)
 		} else if value == nil {
-			var e error = fmt.Errorf("query returns no result: <%s>", queryString)
-			log.Fatal(e)
+			log.Println("WARNING: JQuery returned no result: ", queryString)
 		} else {
 			resp = value
 		}

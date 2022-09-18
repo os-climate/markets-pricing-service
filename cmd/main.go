@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -27,10 +28,27 @@ import (
 
 // App configuration details loaded from config file at boot.
 var globalConfig struct {
-	currencies   []string
-	baseCurrency string
-	updatedAfter string
+	currencies    []string
+	baseCurrency  string
+	updatedAfter  string
+	reader        string
+	dataPublisher string
+	dataSource    string
 }
+
+// Map that contains all of the possible publisher. A configuration determines which wil lbe instantiated.
+var publisherMap = map[string]market_data_publisher.IMarketDataPublisher{
+	"console-publisher": &market_data_publisher.ConsolePublisher{},
+	"kafka-publisher":   &market_data_publisher.KafkaPublisher{}}
+
+// Map that contains all of the possible data sources. A configuration determines which wil lbe instantiated.
+var readerMap = map[string]market_reader.IMarketReader{
+	"time-reader": &market_reader.TimerReader{}}
+
+// Map that contains all of the possible data sources. A configuration determines which wil lbe instantiated.
+var providerMap = map[string]market_data_source.IMarketDataSource{
+	"simulator": &market_data_source.MarketSimulator{},
+	"ecb":       &market_data_source.ECBMarketDataProvider{}}
 
 func init() {
 	fmt.Println("Initialising...")
@@ -43,8 +61,11 @@ func init() {
 	globalConfig.currencies = strings.Split(config["currencies"], ",") // Split the comma separatedf list
 	globalConfig.baseCurrency = config["base-currency"]
 	globalConfig.updatedAfter = config["updated-after"]
+	globalConfig.reader = config["reader"]
+	globalConfig.dataPublisher = config["market-data-publisher"] // Which publisher will the service use?
+	globalConfig.dataSource = config["market-data-source"]       // Which market data source will the service use?
 
-	fmt.Printf("Loaded config: %s\n", globalConfig) // TODO: Use the config.
+	fmt.Printf("Loaded config: %s\n", globalConfig)
 }
 
 func main() {
@@ -61,21 +82,45 @@ func main() {
 	defer close(c)
 	defer close(quit)
 
+	provider, exists := providerMap[globalConfig.dataSource]
+	if !exists {
+		optionList := ""
+		for k := range providerMap {
+			optionList += k + " "
+		}
+		var err error = fmt.Errorf("specified market data source (%s) does not exist. Cannot instantiate the publisher. Options are: %s", globalConfig.dataSource, optionList)
+		log.Fatal(err)
+	}
+	provider.Initialise()
+
 	// Instantiate and initialise the Market Reader(s)
-	reader := &market_reader.TimerReader{}
-	//dataSource := &market_data_source.MarketSimulator{}
-	dataSource := &market_data_source.ECBMarketDataProvider{}
-	dataSource.Initialise()
+	// TODO: Add error handling
+	reader, exists := readerMap[globalConfig.reader] // &market_reader.TimerReader{}
+	if !exists {
+		optionList := ""
+		for k := range readerMap {
+			optionList += k + " "
+		}
+		var err error = fmt.Errorf("specified reader (%s) does not exist. Cannot instantiate the market reader. Options are: %s", globalConfig.reader, optionList)
+		log.Fatal(err)
+	}
 
-	reader.SetMarketProvider(dataSource)
+	reader.Initialise(c, quit)
+	reader.SetMarketProvider(provider)
 
-	// Instantiate and initialise the Market Publisher(s)
-	// publisher := &market_data_publisher.ConsolePublisher{}
-	publisher := &market_data_publisher.KafkaPublisher{}
+	// Instantiate and initialise the Market Publisher fro the global configuration data
+	publisher, exists := publisherMap[globalConfig.dataPublisher]
+	if !exists {
+		optionList := ""
+		for k := range publisherMap {
+			optionList += k + " "
+		}
+		var err error = fmt.Errorf("specified market publisher (%s) does not exist. Cannot instantiate the publisher. Options are: %s", globalConfig.dataPublisher, optionList)
+		log.Fatal(err)
+	}
 	publisher.Initialise()
 
 	// Start the reader thread
-	reader.Initialise(c, quit)
 	go reader.GetFxPricing(globalConfig.currencies, globalConfig.baseCurrency, globalConfig.updatedAfter)
 
 	// Process messages
