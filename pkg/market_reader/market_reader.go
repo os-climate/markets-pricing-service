@@ -27,8 +27,11 @@ type IMarketReader interface {
 	// SetMarketProvider assigns the MarketDataProvider so this implementation can request the data to be retrieved.
 	SetMarketProvider(market_data_source.IMarketDataSource)
 
+	// Initialise configures all of the required runtime parameters and must be the first method called.
+	Initialise(c chan string, quit chan int)
+
 	// GetFxPricing initiates the retrieval of the market data from the provider. It defined the go channel for providing the results,
 	// a separate channel for controlling shutdown, a list of currencies to retrieve the FX details for, the base Currency for the FX,
 	// and a date stamp to filter the FX data on.
-	GetFxPricing(c chan string, quit chan int, currencies []string, baseCurrency string, updatedAfter string)
+	GetFxPricing(currencies []string, baseCurrency string, updatedAfter string)
 }
