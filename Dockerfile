@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM registry.redhat.io/ubi9:9.0.0-1576
+FROM registry.redhat.io/ubi9:9.0.0-1640
 WORKDIR /app
 COPY bin/market-pricing-svc .
 CMD ["/app/market-pricing-svc"]
