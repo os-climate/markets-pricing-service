@@ -24,6 +24,8 @@ import (
 	"os-climate.org/market-pricing/pkg/market_data_source"
 	"os-climate.org/market-pricing/pkg/market_reader"
 	"os-climate.org/market-pricing/pkg/utils"
+
+	"github.com/jessevdk/go-flags"
 )
 
 // App configuration details loaded from config file at boot.
@@ -34,6 +36,7 @@ var globalConfig struct {
 	reader        string
 	dataPublisher string
 	dataSource    string
+	dryRun        bool
 }
 
 // Map that contains all of the possible publisher. A configuration determines which wil lbe instantiated.
@@ -43,7 +46,8 @@ var publisherMap = map[string]market_data_publisher.IMarketDataPublisher{
 
 // Map that contains all of the possible data sources. A configuration determines which wil lbe instantiated.
 var readerMap = map[string]market_reader.IMarketReader{
-	"time-reader": &market_reader.TimerReader{}}
+	"time-reader": &market_reader.TimerReader{},
+	"one-shot":    &market_reader.OneShotReader{}}
 
 // Map that contains all of the possible data sources. A configuration determines which wil lbe instantiated.
 var providerMap = map[string]market_data_source.IMarketDataSource{
@@ -53,19 +57,21 @@ var providerMap = map[string]market_data_source.IMarketDataSource{
 func init() {
 	fmt.Println("Initialising...")
 
+	parseCommandLineArgs()
+
 	// Load the configuration data from the configuration file
+	// TODO: Add check to make sure the configuraiton item is valid
 	config := utils.ReadConfig("./config/app-config.properties")
-
-	// TODO: Add checks to ensure the config values exist.
-
-	globalConfig.currencies = strings.Split(config["currencies"], ",") // Split the comma separatedf list
-	globalConfig.baseCurrency = config["base-currency"]
-	globalConfig.updatedAfter = config["updated-after"]
+	globalConfig.dataSource = config["market-data-source"] // Which market data source will the service use?
 	globalConfig.reader = config["reader"]
 	globalConfig.dataPublisher = config["market-data-publisher"] // Which publisher will the service use?
-	globalConfig.dataSource = config["market-data-source"]       // Which market data source will the service use?
 
-	fmt.Printf("Loaded config: %s\n", globalConfig)
+	if globalConfig.dryRun {
+		// Override the configuration file if the command line switch is --dry-run
+		globalConfig.dataPublisher = "console-publisher"
+	}
+
+	fmt.Printf("Loaded config: %v\n", globalConfig)
 }
 
 func main() {
@@ -125,33 +131,28 @@ func main() {
 
 	// Process messages
 	run := true
+loop:
 	for run {
 		select {
 		case sig := <-sigchan:
 			fmt.Printf("Caught signal %v: terminating\n", sig)
 			run = false
 		default:
-			m := <-c // Test the channel to see if the price getter has retrieved a quote
-			if m != "" {
+			m := <-c         // Test the channel to see if the price getter has retrieved a quote
+			if m == "done" { // Check if the market reader is done.
+				break loop
+			} else if m != "" {
 				SendToPublisher(publisher, m)
 			}
 		}
 	}
-	quit <- 0 // Send a quit signal
 
-	// Wait for clean termination response from the thread.
-	for q := <-c; q != "done"; {
-		continue
-	}
-	fmt.Printf("Received clean termination signal from all threads.\n")
 	fmt.Printf("Exiting")
 }
 
 // Send the key/value to the instantiated Market Data Publisher
 func SendToPublisher(publisher market_data_publisher.IMarketDataPublisher, priceData string) {
 	arr := strings.SplitN(priceData, ",", 2)
-
-	// TODO: Iterate through the list of publishers
 
 	// Check the data is formatted properly
 	if len(arr) == 2 {
@@ -164,5 +165,37 @@ func SendToPublisher(publisher market_data_publisher.IMarketDataPublisher, price
 
 // Called on program exit. Place any cleanup functions here
 func cleanup() {
+
+}
+
+// isDryRun check is there is an os arg of "--dry-run". If there is then it returns tru. If not then it returns false.
+func parseCommandLineArgs() {
+	var opts struct {
+		// Slice of bool will append 'true' each time the option
+		// is encountered (can be set multiple times, like -vvv)
+		DryRun bool `long:"dry-run" description:"Dry run - send output to console instead of the configured market-data publisher."`
+
+		BaseCurrency string `long:"base-currency"  description:"The base currency that all currencies are rated against." required:"true"`
+
+		Currencies string `long:"currencies"  description:"A comma separated list of currencies to retrieve." required:"true"`
+
+		UpdatedAfter string `long:"updated-after"  description:"The earliest date to retrieve FX data from. Format YYYY-MM-DD" required:"true" default:"2022-01-01"`
+	}
+
+	_, err := flags.Parse(&opts)
+	if err != nil {
+		fmt.Println("Invalid command-line options. Use --help for details.")
+		os.Exit(1)
+	}
+
+	fmt.Printf("Dry run: %v\n", opts.DryRun)
+	fmt.Printf("Base Currency: %s\n", opts.BaseCurrency)
+	fmt.Printf("Currencies: %s\n", opts.Currencies)
+	fmt.Printf("Updated after: %s\n", opts.UpdatedAfter)
+
+	globalConfig.dryRun = opts.DryRun
+	globalConfig.baseCurrency = opts.BaseCurrency
+	globalConfig.currencies = strings.Split(opts.Currencies, ",")
+	globalConfig.updatedAfter = opts.UpdatedAfter
 
 }

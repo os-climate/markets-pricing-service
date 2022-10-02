@@ -52,6 +52,7 @@ const wsEntryPoint = "https://sdw-wsrest.ecb.europa.eu/service" // The web servi
 const resource = "data"                                         // The resource for data queries is data
 const flowRef = "EXR"                                           // A reference to the dataflow describing the data that needs to be returned.
 const frequency = "D"                                           // Options are D (daily), M (monthly), A (annually). REVISIT: Maybe make this configurable...
+const requiredBaseCurrency = "EUR"                              // It appears that the interface will only work with EUR as the base currency.
 const exRateType = "SP00"                                       // SP00 is FX
 const seriesVariation = "A"                                     // Average
 
@@ -67,6 +68,10 @@ func (r *ECBMarketDataProvider) GetFxPricing(currency string, baseCurrency strin
 
 	log.Printf("ECBMarketDataProvider::GetFxPricing(%s)", currency)
 
+	if requiredBaseCurrency != baseCurrency {
+		log.Printf("ERROR: A base currency was supplied (%s) that is not %s. ECB only allows %s as the base currency.\n", baseCurrency, requiredBaseCurrency, requiredBaseCurrency)
+	}
+
 	// Build the http GET command.
 	httpRequest := r.constructRequest(currency, baseCurrency, updatedAfter)
 	log.Printf("HTTP Request: %s\n", httpRequest)
@@ -75,7 +80,7 @@ func (r *ECBMarketDataProvider) GetFxPricing(currency string, baseCurrency strin
 	ecbJsonResp := requestData(httpRequest)
 	// ECB returns a simple string if the query returns no results
 	if ecbJsonResp == "No results found." {
-		log.Println("WARNING: ECB returned no results. Check the date in the query (", updatedAfter, ") is correct: ")
+		log.Printf("WARNING: ECB returned no results. Check the date in the query (%s) is correct, that the base currency is %s, and that %s is not in the currencies list.\n", updatedAfter, requiredBaseCurrency, requiredBaseCurrency)
 	} else {
 		// In case the date returns multiple FX rates, find the number of rates returned.
 		var key, newFxMsg string
