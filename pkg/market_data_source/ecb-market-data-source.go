@@ -195,10 +195,7 @@ func parseResponse(ecbJsonResp string, index int) (string, string) {
 	// Extract the FX Rate for the supplied index number
 	queryString := queries["fx-rate-query1"] + "\"" + strconv.Itoa(index) + "\"" + queries["fx-rate-query2"]
 	jsonVal = queryPath(&input, queryString)
-<<<<<<< HEAD
-=======
 
->>>>>>> bf79832 (Pushing fix for issue 4)
 	// ECB may return nil for missing values. If so replace nil with 0
 	if jsonVal == nil {
 		log.Println("WARNING: No result for FX at index:", index)
