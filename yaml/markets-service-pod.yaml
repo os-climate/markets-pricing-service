@@ -36,6 +36,7 @@ spec:
       value: "--dry-run"
     - name: UPDATEDAFTER
       value: "--updated-after=2022-09-25"
+  restartPolicy: Never
   volumes:
   - name: config
     configMap:
