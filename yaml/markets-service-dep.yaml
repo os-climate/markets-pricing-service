@@ -28,12 +28,23 @@ spec:
     spec:
       containers:
       - name: market-pricing
-        image: quay.io/brbaker/market-pricing:v0.4.3
+        image: quay.io/brbaker/market-pricing:v0.5.2
+        command: ["/app/market-pricing-svc"]
+        args: ["$(DRYRUN)", "$(BASE)", "$(CURRENCIES)", "$(UPDATEDAFTER)"]
         imagePullPolicy: Always
         volumeMounts:
         - name: config
           mountPath: "/app/config"
           readOnly: true
+        env:
+        - name: BASE
+          value: "--base-currency=EUR"
+        - name: CURRENCIES
+          value: "--currencies=AUD,NZD"
+        - name: DRYRUN
+          value: "--dry-run"
+        - name: UPDATEDAFTER
+          value: "--updated-after=2022-09-25"
       volumes:
       - name: config
         configMap:
