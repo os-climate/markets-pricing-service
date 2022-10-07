@@ -15,4 +15,5 @@
 FROM registry.redhat.io/ubi9:9.0.0-1640
 WORKDIR /app
 COPY bin/market-pricing-svc .
-CMD ["/app/market-pricing-svc"]
+COPY scripts/entrypoint.sh .
+ENTRYPOINT ["/app/entrypoint.sh"]
