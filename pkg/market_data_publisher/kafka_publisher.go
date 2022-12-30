@@ -25,7 +25,7 @@ type KafkaPublisher struct {
 	initialised bool
 }
 
-var topic = "ECB-FX" // TODO: Make this a config file option
+var topic = "ecb-fx" // TODO: Make this a config file option
 var kafkaProducer *kafka.Producer
 var config kafka.ConfigMap
 

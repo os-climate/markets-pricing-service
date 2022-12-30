@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: market-pricing-job
+  namespace: markets-svc-dev
+spec:
+  schedule: '@daily'
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 7
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: market-pricing
+            image: quay.io/brbaker/market-pricing:v0.6.1
+            command:
+            - /bin/bash
+            - "-c"
+            - |
+                export BASE="--base-currency=EUR"
+                export CURRENCIES="--currencies=USD,GBP,JPY,KRW,UAH,THB,TRY,INR,MXN,ILS,AUD,NZD,RUB"
+                export UPDATEDAFTER="--updated-after=$(date -d yesterday '+%C%y-%m-%d')"
+                echo "BASE: " $BASE
+                echo "CURRENCIES: "$CURRENCIES
+                echo "UPDATEDAFTER: " $UPDATEDAFTER
+                echo "DRYRUN: " $DRYRUN
+                exec /app/market-pricing-svc $BASE $CURRENCIES $UPDATEDAFTER $DRYRUN
+            imagePullPolicy: Always
+            volumeMounts:
+            - name: config
+              mountPath: "/app/config"
+              readOnly: true
+          restartPolicy: Never
+          volumes:
+          - name: config
+            configMap:
+              name: app-config        
+              items:                  
+              - key: "kafka.properties"
+                path: "kafka.properties"
+              - key: "app-config.properties"
+                path: "app-config.properties"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  kafka.properties: |
+    bootstrap.servers=fx-kafka-bootstrap.kafka.svc.cluster.local:9092
+    security.protocol=plaintext
+    acks=all
+  app-config.properties: |
+    market-data-publisher=kafka-publisher
+    market-data-source=ecb
+    reader=one-shot

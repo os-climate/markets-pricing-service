@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Use the git tag to set the image version etc
+VERSION := $(shell git describe --tags --dirty=-modified --always)
+
 clean:
 	rm bin/market-pricing-svc
 
 build:
 	go build -o bin/market-pricing-svc cmd/main.go
 
-# TOTO: Externalise the release version so it is not hard coded here and in the deployment config.
-# At the moment these need to be kept in sync manually.
 package: clean build
-	podman build . -t quay.io/brbaker/market-pricing:v0.5.2
-
+	podman build . -t quay.io/brbaker/market-pricing:${VERSION}
 run:
 	go run cmd/main.go
 

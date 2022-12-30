@@ -19,9 +19,9 @@ metadata:
 spec:
   containers:
   - name: market-pricing
-    image: quay.io/brbaker/market-pricing:v0.5.2
+    image: quay.io/brbaker/market-pricing:v0.6
     command: ["/app/market-pricing-svc"]
-    args: ["$(DRYRUN)", "$(BASE)", "$(CURRENCIES)", "$(UPDATEDAFTER)"]
+    args: ["$(BASE)", "$(CURRENCIES)", "$(UPDATEDAFTER)"]
     imagePullPolicy: Always
     volumeMounts:
     - name: config
@@ -31,11 +31,11 @@ spec:
     - name: BASE
       value: "--base-currency=EUR"
     - name: CURRENCIES
-      value: "--currencies=AUD,NZD"
+      value: "--currencies=USD,GBP,JPY,KRW,UAH,THB,TRY,INR,MXN,ILS,AUD,NZD,RUB"
     - name: DRYRUN
       value: "--dry-run"
     - name: UPDATEDAFTER
-      value: "--updated-after=2022-09-25"
+      value: "--updated-after=2022-10-07"
   restartPolicy: Never
   volumes:
   - name: config

@@ -28,23 +28,25 @@ spec:
     spec:
       containers:
       - name: market-pricing
-        image: quay.io/brbaker/market-pricing:v0.5.2
-        command: ["/app/market-pricing-svc"]
-        args: ["$(DRYRUN)", "$(BASE)", "$(CURRENCIES)", "$(UPDATEDAFTER)"]
+        image: quay.io/brbaker/market-pricing:v0.6
+        command:
+        - /bin/bash
+        - "-c"
+        - |
+            export BASE="--base-currency=EUR"
+            export CURRENCIES="--currencies=USD,GBP,JPY,KRW,UAH,THB,TRY,INR,MXN,ILS,AUD,NZD,RUB"
+            export UPDATEDAFTER="--updated-after=$(date -d yesterday '+%C%y-%m-%d')"
+            export DRYRUN="--dry-run"
+            echo $BASE
+            echo $CURRENCIES
+            echo $UPDATEDAFTER
+            echo $DRYRUN
+            exec /app/market-pricing-svc $BASE $CURRENCIES $UPDATEDAFTER $DRYRUN
         imagePullPolicy: Always
         volumeMounts:
         - name: config
           mountPath: "/app/config"
           readOnly: true
-        env:
-        - name: BASE
-          value: "--base-currency=EUR"
-        - name: CURRENCIES
-          value: "--currencies=AUD,NZD"
-        - name: DRYRUN
-          value: "--dry-run"
-        - name: UPDATEDAFTER
-          value: "--updated-after=2022-09-25"
       volumes:
       - name: config
         configMap:
@@ -54,3 +56,17 @@ spec:
             path: "kafka.properties"
           - key: "app-config.properties"
             path: "app-config.properties"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  kafka.properties: |
+    bootstrap.servers=fx-pricing-dev-kafka-bootstrap.kafka.svc.cluster.local:9092
+    security.protocol=plaintext
+    acks=all
+  app-config.properties: |
+    market-data-publisher=kafka-publisher
+    market-data-source=ecb
+    reader=one-shot
