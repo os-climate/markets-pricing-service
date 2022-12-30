@@ -10,6 +10,8 @@ With this architecture there is no reason why there couldn't be a list of each a
 
 TODO: Document the extensibility architecture.
 
+Separately from the questions of the service implementation, users may want to access the data that it federates to the Data Commons.  Please review the [ecb-fx-query notebook](https://github.com/os-climate/data-platform-demo/blob/master/notebooks/ecb-fx-query.ipynb) to see how to access the data. 
+
 ## Current status
 
 At the moment the service will keep republishing everything from 1999 ov er and over again. There is an issue to track fixing this.
