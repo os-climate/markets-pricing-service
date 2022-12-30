@@ -35,7 +35,7 @@ spec:
     - name: DRYRUN
       value: "--dry-run"
     - name: UPDATEDAFTER
-      value: "--updated-after=1990-01-01"
+      value: "--updated-after=2022-10-07"
   restartPolicy: Never
   volumes:
   - name: config
