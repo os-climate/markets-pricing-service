@@ -14,5 +14,6 @@ Separately from the questions of the service implementation, users may want to a
 
 ## Current status
 
-At the moment the service will keep republishing everything from 1999 ov er and over again. There is an issue to track fixing this.
-So don't start using it just yet!
+The service uses a cronjob to pull the previous days FX details.
+There is one particular area for improvement:
+1. Add a retry in case the ECB service times out (I have seen this a few times)
