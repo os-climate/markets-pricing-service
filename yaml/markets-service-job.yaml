@@ -5,13 +5,15 @@ metadata:
   namespace: markets-svc-dev
 spec:
   schedule: '@daily'
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 7
   jobTemplate:
     spec:
       template:
         spec:
           containers:
           - name: market-pricing
-            image: quay.io/brbaker/market-pricing:v0.6
+            image: quay.io/brbaker/market-pricing:v0.6.1
             command:
             - /bin/bash
             - "-c"
@@ -19,11 +21,10 @@ spec:
                 export BASE="--base-currency=EUR"
                 export CURRENCIES="--currencies=USD,GBP,JPY,KRW,UAH,THB,TRY,INR,MXN,ILS,AUD,NZD,RUB"
                 export UPDATEDAFTER="--updated-after=$(date -d yesterday '+%C%y-%m-%d')"
-                export DRYRUN="--dry-run"
-                echo $BASE
-                echo $CURRENCIES
-                echo $UPDATEDAFTER
-                echo $DRYRUN
+                echo "BASE: " $BASE
+                echo "CURRENCIES: "$CURRENCIES
+                echo "UPDATEDAFTER: " $UPDATEDAFTER
+                echo "DRYRUN: " $DRYRUN
                 exec /app/market-pricing-svc $BASE $CURRENCIES $UPDATEDAFTER $DRYRUN
             imagePullPolicy: Always
             volumeMounts:
@@ -40,15 +41,6 @@ spec:
                 path: "kafka.properties"
               - key: "app-config.properties"
                 path: "app-config.properties"
-    env:
-    - name: BASE
-      value: "--base-currency=EUR"
-    - name: CURRENCIES
-      value: "--currencies=AUD,NZD"
-    - name: DRYRUN
-      value: "--dry-run"
-    - name: UPDATEDAFTER
-      value: "--updated-after=2022-09-25"
 ---
 apiVersion: v1
 kind: ConfigMap

@@ -21,7 +21,7 @@ build:
 # TOTO: Externalise the release version so it is not hard coded here and in the deployment config.
 # At the moment these need to be kept in sync manually.
 package: clean build
-	podman build . -t quay.io/brbaker/market-pricing:v0.6
+	podman build . -t quay.io/brbaker/market-pricing:v0.6.1
 run:
 	go run cmd/main.go
 
