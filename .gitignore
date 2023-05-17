@@ -1,3 +1,6 @@
+# Credentials / Secrets
+credentials.env
+
 markets-pricing-service.code-workspace
 .vscode/launch.json
 samples/*
